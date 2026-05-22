@@ -64,7 +64,7 @@ void tela_creditos() {
 
 void tela_game_over() {
     limpar_tela();
-    printf("=== GAME OVER ===\n\n");s
+    printf("=== GAME OVER ===\n\n");
     printf("Voce perdeu todas as suas vidas!\n\n");
     printf("Pressione qualquer tecla para voltar ao menu...\n");
     _getch();
