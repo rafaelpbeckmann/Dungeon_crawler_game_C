@@ -5,6 +5,7 @@
 #define COLUNAS 10
 #define limpar_tela() printf("\033[H\033[J")
 
+
 int vidas = 3;
 
 char mapa[LINHAS][COLUNAS] = {
@@ -63,12 +64,11 @@ void tela_creditos() {
 
 void tela_game_over() {
     limpar_tela();
-    printf("=== GAME OVER ===\n\n");
+    printf("=== GAME OVER ===\n\n");s
     printf("Voce perdeu todas as suas vidas!\n\n");
     printf("Pressione qualquer tecla para voltar ao menu...\n");
     _getch();
 }
-
 
 
 void imprimir_mapa() {
@@ -116,13 +116,12 @@ void jogar() {
         if (tecla == 'd') mover(jogador_linha,     jogador_coluna + 1, '>');
         if (tecla == 'q') break;
 
-    
+        
 
         imprimir_mapa();
     }
 }
 
-// --- Menu principal ---
 
 void menu() {
     char opcao;
