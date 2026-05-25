@@ -5,27 +5,25 @@
 #define COLUNAS 10
 #define limpar_tela() printf("\033[H\033[J")
 
-
-int vidas = 3;
+int vidas  = 3;
+int chaves = 0;
 
 char mapa[LINHAS][COLUNAS] = {
     {'*','*','*','*','*','*','*','*','*','*'},
+    {'*',' ',' ',' ','@',' ',' ',' ',' ','*'},
+    {'*',' ','*','*','*','D','*',' ',' ','*'},
+    {'*',' ',' ',' ',' ','=',' ',' ',' ','*'},
     {'*',' ',' ',' ',' ',' ',' ',' ',' ','*'},
-    {'*',' ','*','*',' ',' ',' ',' ',' ','*'},
+    {'*',' ',' ','k',' ',' ',' ',' ',' ','*'},
     {'*',' ',' ',' ',' ',' ',' ',' ',' ','*'},
     {'*',' ',' ',' ',' ',' ',' ',' ',' ','*'},
-    {'*',' ',' ',' ',' ',' ',' ',' ',' ','*'},
-    {'*',' ',' ',' ',' ',' ',' ',' ',' ','*'},
-    {'*',' ',' ',' ',' ',' ',' ',' ',' ','*'},
-    {'*',' ',' ',' ',' ',' ',' ',' ',' ','*'},
+    {'*',' ',' ',' ',' ',' ',' ',' ',' ','L'},
     {'*','*','*','*','*','*','*','*','*','*'}
 };
 
 int jogador_linha  = 1;
 int jogador_coluna = 1;
 char jogador_dir   = '>';
-
-
 
 void tela_tutorial() {
     limpar_tela();
@@ -70,10 +68,9 @@ void tela_game_over() {
     _getch();
 }
 
-
 void imprimir_mapa() {
     limpar_tela();
-    printf("Vidas: %d\n\n", vidas);
+    printf("Vidas: %d  |  Chaves: %d\n\n", vidas, chaves);
     for (int i = 0; i < LINHAS; i++) {
         for (int j = 0; j < COLUNAS; j++) {
             if (i == jogador_linha && j == jogador_coluna)
@@ -83,15 +80,72 @@ void imprimir_mapa() {
         }
         printf("\n");
     }
-    printf("\nUse wasd para mover. Q para sair.\n");
+    printf("\nUse wasd para mover, i para interagir, o para atacar. Q para sair.\n");
 }
 
 void mover(int nova_linha, int nova_coluna, char direcao) {
     jogador_dir = direcao;
 
-    if (mapa[nova_linha][nova_coluna] != '*') {
+    char destino = mapa[nova_linha][nova_coluna];
+
+    if (destino != '*' && destino != 'D' && destino != 'k') {
         jogador_linha  = nova_linha;
         jogador_coluna = nova_coluna;
+    }
+}
+
+void interagir() {
+    int alvo_linha  = jogador_linha;
+    int alvo_coluna = jogador_coluna;
+
+    if (jogador_dir == '^') alvo_linha--;
+    if (jogador_dir == 'v') alvo_linha++;
+    if (jogador_dir == '<') alvo_coluna--;
+    if (jogador_dir == '>') alvo_coluna++;
+
+    char alvo = mapa[alvo_linha][alvo_coluna];
+
+    if (alvo == '@') {
+        chaves++;
+        mapa[alvo_linha][alvo_coluna] = ' ';
+        printf("\nVoce pegou uma chave! Chaves: %d\n", chaves);
+        _getch();
+    } else if (alvo == 'D') {
+        if (chaves > 0) {
+            chaves--;
+            mapa[alvo_linha][alvo_coluna] = '=';
+            printf("\nPorta aberta!\n");
+        } else {
+            printf("\nVoce precisa de uma chave!\n");
+        }
+        _getch();
+    } else if (alvo == 'L') {
+        printf("\nVoce subiu a escada! (proxima fase em breve)\n");
+        _getch();
+    } else {
+        printf("\nNao ha nada para interagir aqui.\n");
+        _getch();
+    }
+}
+
+void atacar() {
+    int alvo_linha  = jogador_linha;
+    int alvo_coluna = jogador_coluna;
+
+    if (jogador_dir == '^') alvo_linha--;
+    if (jogador_dir == 'v') alvo_linha++;
+    if (jogador_dir == '<') alvo_coluna--;
+    if (jogador_dir == '>') alvo_coluna++;
+
+    char alvo = mapa[alvo_linha][alvo_coluna];
+
+    if (alvo == 'k') {
+        mapa[alvo_linha][alvo_coluna] = ' ';
+        printf("\nCaixa destruida!\n");
+        _getch();
+    } else {
+        printf("\nNao ha nada para atacar aqui.\n");
+        _getch();
     }
 }
 
@@ -99,6 +153,7 @@ void resetar_jogador() {
     jogador_linha  = 1;
     jogador_coluna = 1;
     jogador_dir    = '>';
+    chaves         = 0;
 }
 
 void jogar() {
@@ -114,14 +169,13 @@ void jogar() {
         if (tecla == 's') mover(jogador_linha + 1, jogador_coluna, 'v');
         if (tecla == 'a') mover(jogador_linha,     jogador_coluna - 1, '<');
         if (tecla == 'd') mover(jogador_linha,     jogador_coluna + 1, '>');
+        if (tecla == 'i') interagir();
+        if (tecla == 'o') atacar();
         if (tecla == 'q') break;
-
-        
 
         imprimir_mapa();
     }
 }
-
 
 void menu() {
     char opcao;
