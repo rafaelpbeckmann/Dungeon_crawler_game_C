@@ -1,32 +1,55 @@
 #include <stdio.h>
 #include <conio.h>
 #include <windows.h>
+#include <stdlib.h>
+#include <time.h>
 
 #define LINHAS  10
 #define COLUNAS 10
 #define limpar_tela() printf("\033[H\033[J")
 #define MAX_CELULAS_ATAQUE 12
+#define MAX_MONSTROS 10
 
 int vidas  = 3;
 int chaves = 0;
 int arma   = 0;
 
-char mapa[LINHAS][COLUNAS] = {
+char mapa_original[LINHAS][COLUNAS] = {
     {'*','*','*','*','*','*','*','*','*','*'},
     {'*',' ',' ',' ','@',' ',' ',' ',' ','*'},
     {'*',' ','*','*','*','D','*',' ',' ','*'},
     {'*',' ',' ',' ',' ','=',' ',' ',' ','*'},
-    {'*',' ',' ',' ',' ',' ',' ',' ',' ','*'},
+    {'*',' ',' ',' ','#','#',' ',' ',' ','*'},
     {'*',' ',' ','k',' ',' ',' ',' ',' ','*'},
-    {'*',' ',' ',' ',' ',' ',' ',' ',' ','*'},
+    {'*',' ',' ',' ',' ',' ','X',' ',' ','*'},
     {'*',' ','N',' ',' ',' ',' ',' ',' ','*'},
     {'*',' ',' ',' ',' ',' ',' ',' ',' ','L'},
     {'*','*','*','*','*','*','*','*','*','*'}
 };
 
+char mapa[LINHAS][COLUNAS];
+
 int jogador_linha  = 1;
 int jogador_coluna = 1;
 char jogador_dir   = '>';
+
+int monstro_linha[MAX_MONSTROS];
+int monstro_coluna[MAX_MONSTROS];
+int total_monstros = 0;
+
+void carregar_mapa() {
+    total_monstros = 0;
+    for (int i = 0; i < LINHAS; i++) {
+        for (int j = 0; j < COLUNAS; j++) {
+            mapa[i][j] = mapa_original[i][j];
+            if (mapa_original[i][j] == 'X') {
+                monstro_linha[total_monstros]  = i;
+                monstro_coluna[total_monstros] = j;
+                total_monstros++;
+            }
+        }
+    }
+}
 
 void tela_tutorial() {
     limpar_tela();
@@ -96,26 +119,63 @@ void imprimir_mapa() {
     printf("\nUse wasd para mover, i para interagir, o para atacar. Q para sair.\n");
 }
 
-void mover(int nova_linha, int nova_coluna, char direcao) {
-    jogador_dir = direcao;
-
-    char destino = mapa[nova_linha][nova_coluna];
-
-    if (destino != '*' && destino != 'D' && destino != 'k' && destino != 'N') {
-        jogador_linha  = nova_linha;
-        jogador_coluna = nova_coluna;
-    }
-}
-
 int eh_parede(int linha, int coluna) {
     if (linha < 0 || linha >= LINHAS || coluna < 0 || coluna >= COLUNAS) return 1;
     return mapa[linha][coluna] == '*';
 }
 
+void mover_monstros() {
+    int direcoes[4][2] = {{-1,0},{1,0},{0,-1},{0,1}};
+
+    for (int m = 0; m < total_monstros; m++) {
+        int dir = rand() % 4;
+        int nova_l = monstro_linha[m]  + direcoes[dir][0];
+        int nova_c = monstro_coluna[m] + direcoes[dir][1];
+
+        if (nova_l < 0 || nova_l >= LINHAS || nova_c < 0 || nova_c >= COLUNAS) continue;
+
+        char destino = mapa[nova_l][nova_c];
+
+        if (destino == '*' || destino == '#' || destino == 'k' ||
+            destino == 'D' || destino == 'N' || destino == 'X' ||
+            destino == 'Y' || destino == 'Z') continue;
+
+        mapa[monstro_linha[m]][monstro_coluna[m]] = ' ';
+        monstro_linha[m]  = nova_l;
+        monstro_coluna[m] = nova_c;
+        mapa[nova_l][nova_c] = 'X';
+    }
+}
+
+int verificar_morte() {
+    char celula = mapa[jogador_linha][jogador_coluna];
+    if (celula == '#') return 1;
+
+    for (int m = 0; m < total_monstros; m++) {
+        if (monstro_linha[m] == jogador_linha && monstro_coluna[m] == jogador_coluna) return 1;
+    }
+    return 0;
+}
+
 void atacar_celula(int linha, int coluna) {
     if (linha < 0 || linha >= LINHAS || coluna < 0 || coluna >= COLUNAS) return;
-    if (mapa[linha][coluna] == 'k') {
+
+    char alvo = mapa[linha][coluna];
+
+    if (alvo == 'k') {
         mapa[linha][coluna] = ' ';
+    } else if (alvo == 'X') {
+        mapa[linha][coluna] = ' ';
+        for (int m = 0; m < total_monstros; m++) {
+            if (monstro_linha[m] == linha && monstro_coluna[m] == coluna) {
+                for (int k = m; k < total_monstros - 1; k++) {
+                    monstro_linha[k]  = monstro_linha[k+1];
+                    monstro_coluna[k] = monstro_coluna[k+1];
+                }
+                total_monstros--;
+                break;
+            }
+        }
     }
 }
 
@@ -168,10 +228,7 @@ void atacar_espada() {
     }
 
     mostrar_ataque(linhas, colunas, total);
-
-    for (int i = 0; i < total; i++) {
-        atacar_celula(linhas[i], colunas[i]);
-    }
+    for (int i = 0; i < total; i++) atacar_celula(linhas[i], colunas[i]);
 }
 
 void atacar_arco() {
@@ -198,10 +255,7 @@ void atacar_arco() {
     }
 
     mostrar_ataque(linhas, colunas, total);
-
-    for (int i = 0; i < total; i++) {
-        atacar_celula(linhas[i], colunas[i]);
-    }
+    for (int i = 0; i < total; i++) atacar_celula(linhas[i], colunas[i]);
 }
 
 void atacar_cajado() {
@@ -223,10 +277,7 @@ void atacar_cajado() {
     }
 
     mostrar_ataque(linhas, colunas, total);
-
-    for (int i = 0; i < total; i++) {
-        atacar_celula(linhas[i], colunas[i]);
-    }
+    for (int i = 0; i < total; i++) atacar_celula(linhas[i], colunas[i]);
 }
 
 void escolher_arma() {
@@ -296,6 +347,17 @@ void interagir() {
     }
 }
 
+void mover(int nova_linha, int nova_coluna, char direcao) {
+    jogador_dir = direcao;
+
+    char destino = mapa[nova_linha][nova_coluna];
+
+    if (destino != '*' && destino != 'D' && destino != 'k' && destino != 'N') {
+        jogador_linha  = nova_linha;
+        jogador_coluna = nova_coluna;
+    }
+}
+
 void resetar_jogador() {
     jogador_linha  = 1;
     jogador_coluna = 1;
@@ -304,8 +366,10 @@ void resetar_jogador() {
 }
 
 void jogar() {
+    srand(time(NULL));
     vidas = 3;
     arma  = 0;
+    carregar_mapa();
     resetar_jogador();
     imprimir_mapa();
 
@@ -313,13 +377,28 @@ void jogar() {
     while (1) {
         tecla = _getch();
 
+        if (tecla == 'q') break;
+
         if (tecla == 'w') mover(jogador_linha - 1, jogador_coluna, '^');
         if (tecla == 's') mover(jogador_linha + 1, jogador_coluna, 'v');
         if (tecla == 'a') mover(jogador_linha,     jogador_coluna - 1, '<');
         if (tecla == 'd') mover(jogador_linha,     jogador_coluna + 1, '>');
         if (tecla == 'i') interagir();
         if (tecla == 'o') atacar();
-        if (tecla == 'q') break;
+
+        mover_monstros();
+
+        if (verificar_morte()) {
+            vidas--;
+            if (vidas <= 0) {
+                tela_game_over();
+                return;
+            }
+            printf("\nVoce perdeu uma vida! Vidas restantes: %d\n", vidas);
+            Sleep(1000);
+            carregar_mapa();
+            resetar_jogador();
+        }
 
         imprimir_mapa();
     }
