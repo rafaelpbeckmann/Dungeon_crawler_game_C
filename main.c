@@ -4,30 +4,34 @@
 #include <stdlib.h>
 #include <time.h>
 
-#define LINHAS  10
-#define COLUNAS 10
-#define limpar_tela() printf("\033[H\033[J")
 #define MAX_CELULAS_ATAQUE 12
 #define MAX_MONSTROS 10
+#define limpar_tela() printf("\033[H\033[J")
+
+#define LINHAS_VILA 10
+#define COLUNAS_VILA 10
 
 int vidas  = 3;
 int chaves = 0;
 int arma   = 0;
 
-char mapa_original[LINHAS][COLUNAS] = {
+char vila_original[LINHAS_VILA][COLUNAS_VILA] = {
     {'*','*','*','*','*','*','*','*','*','*'},
-    {'*',' ',' ',' ','@',' ',' ',' ',' ','*'},
-    {'*',' ','*','*','*','D','*',' ',' ','*'},
-    {'*',' ',' ',' ',' ','=',' ',' ',' ','*'},
-    {'*',' ',' ',' ','#','#',' ',' ',' ','*'},
-    {'*',' ',' ','k',' ',' ',' ',' ',' ','*'},
-    {'*',' ',' ',' ',' ',' ','X',' ',' ','*'},
-    {'*',' ','N',' ',' ',' ',' ',' ',' ','*'},
-    {'*',' ',' ',' ',' ',' ',' ',' ',' ','L'},
-    {'*','*','*','*','*','*','*','*','*','*'}
+    {'*','>','*',' ','*',' ',' ',' ',' ','*'},
+    {'*','@',' ',' ','*',' ',' ',' ',' ','*'},
+    {'*',' ',' ',' ','D',' ',' ',' ',' ','*'},
+    {'*',' ',' ',' ','*',' ',' ','*','*','*'},
+    {'*',' ','N',' ','*',' ',' ',' ',' ','*'},
+    {'*',' ',' ',' ','*',' ',' ','k',' ','*'},
+    {'*','*','*','*','*',' ',' ','k',' ','*'},
+    {'*',' ',' ',' ',' ',' ',' ','*',' ','*'},
+    {'*',' ',' ',' ',' ',' ',' ','*','L','*'}
 };
 
-char mapa[LINHAS][COLUNAS];
+char mapa[LINHAS_VILA][COLUNAS_VILA];
+
+int linhas_atual  = LINHAS_VILA;
+int colunas_atual = COLUNAS_VILA;
 
 int jogador_linha  = 1;
 int jogador_coluna = 1;
@@ -39,10 +43,10 @@ int total_monstros = 0;
 
 void carregar_mapa() {
     total_monstros = 0;
-    for (int i = 0; i < LINHAS; i++) {
-        for (int j = 0; j < COLUNAS; j++) {
-            mapa[i][j] = mapa_original[i][j];
-            if (mapa_original[i][j] == 'X') {
+    for (int i = 0; i < linhas_atual; i++) {
+        for (int j = 0; j < colunas_atual; j++) {
+            mapa[i][j] = vila_original[i][j];
+            if (vila_original[i][j] == 'X') {
                 monstro_linha[total_monstros]  = i;
                 monstro_coluna[total_monstros] = j;
                 total_monstros++;
@@ -107,8 +111,8 @@ void imprimir_mapa() {
     else if (arma == 3) printf("Cajado\n\n");
     else                printf("Nenhuma\n\n");
 
-    for (int i = 0; i < LINHAS; i++) {
-        for (int j = 0; j < COLUNAS; j++) {
+    for (int i = 0; i < linhas_atual; i++) {
+        for (int j = 0; j < colunas_atual; j++) {
             if (i == jogador_linha && j == jogador_coluna)
                 printf("%c", jogador_dir);
             else
@@ -120,7 +124,7 @@ void imprimir_mapa() {
 }
 
 int eh_parede(int linha, int coluna) {
-    if (linha < 0 || linha >= LINHAS || coluna < 0 || coluna >= COLUNAS) return 1;
+    if (linha < 0 || linha >= linhas_atual || coluna < 0 || coluna >= colunas_atual) return 1;
     return mapa[linha][coluna] == '*';
 }
 
@@ -128,11 +132,11 @@ void mover_monstros() {
     int direcoes[4][2] = {{-1,0},{1,0},{0,-1},{0,1}};
 
     for (int m = 0; m < total_monstros; m++) {
-        int dir = rand() % 4;
+        int dir   = rand() % 4;
         int nova_l = monstro_linha[m]  + direcoes[dir][0];
         int nova_c = monstro_coluna[m] + direcoes[dir][1];
 
-        if (nova_l < 0 || nova_l >= LINHAS || nova_c < 0 || nova_c >= COLUNAS) continue;
+        if (nova_l < 0 || nova_l >= linhas_atual || nova_c < 0 || nova_c >= colunas_atual) continue;
 
         char destino = mapa[nova_l][nova_c];
 
@@ -158,7 +162,7 @@ int verificar_morte() {
 }
 
 void atacar_celula(int linha, int coluna) {
-    if (linha < 0 || linha >= LINHAS || coluna < 0 || coluna >= COLUNAS) return;
+    if (linha < 0 || linha >= linhas_atual || coluna < 0 || coluna >= colunas_atual) return;
 
     char alvo = mapa[linha][coluna];
 
@@ -219,7 +223,7 @@ void atacar_espada() {
         for (int k = 0; k < 3; k++) {
             int l = candidatos_l[k];
             int c = candidatos_c[k];
-            if (l >= 0 && l < LINHAS && c >= 0 && c < COLUNAS && mapa[l][c] != '*') {
+            if (l >= 0 && l < linhas_atual && c >= 0 && c < colunas_atual && mapa[l][c] != '*') {
                 linhas[total]  = l;
                 colunas[total] = c;
                 total++;
@@ -268,7 +272,7 @@ void atacar_cajado() {
             if (dl == 0 && dc == 0) continue;
             int l = jogador_linha  + dl;
             int c = jogador_coluna + dc;
-            if (l >= 0 && l < LINHAS && c >= 0 && c < COLUNAS && mapa[l][c] != '*') {
+            if (l >= 0 && l < linhas_atual && c >= 0 && c < colunas_atual && mapa[l][c] != '*') {
                 linhas[total]  = l;
                 colunas[total] = c;
                 total++;
@@ -367,8 +371,10 @@ void resetar_jogador() {
 
 void jogar() {
     srand(time(NULL));
-    vidas = 3;
-    arma  = 0;
+    vidas  = 3;
+    arma   = 0;
+    linhas_atual  = LINHAS_VILA;
+    colunas_atual = COLUNAS_VILA;
     carregar_mapa();
     resetar_jogador();
     imprimir_mapa();
