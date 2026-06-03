@@ -8,10 +8,12 @@
 #define MAX_MONSTROS 10
 #define limpar_tela() printf("\033[H\033[J")
 
-#define LINHAS_VILA   10
-#define COLUNAS_VILA  10
-#define LINHAS_ANDAR1  12
+#define LINHAS_VILA    10
+#define COLUNAS_VILA   10
+#define LINHAS_ANDAR1  11
 #define COLUNAS_ANDAR1 10
+#define LINHAS_ANDAR2  15
+#define COLUNAS_ANDAR2 15
 
 int vidas  = 3;
 int chaves = 0;
@@ -35,15 +37,32 @@ char andar1_original[LINHAS_ANDAR1][COLUNAS_ANDAR1] = {
     {'*','*','*','*','*','*','*','*','*','*'},
     {'*',' ',' ',' ',' ',' ',' ',' ',' ','*'},
     {'*',' ','*','*','*','*',' ',' ',' ','*'},
+    {'*',' ',' ',' ','@','*',' ',' ',' ','*'},
     {'*',' ',' ',' ',' ','*',' ',' ',' ','*'},
-    {'*',' ',' ','@',' ','*',' ',' ',' ','*'},
     {'*','*','D','*','*','*','*','*','*','*'},
-    {'*','k','k','k',' ',' ',' ',' ',' ','*'},
-    {'*','k','k','k','*','*','*','*','*','*'},
-    {'*',' ',' ',' ','*',' ',' ',' ',' ','*'},
-    {'*',' ','*','*','*',' ','*','k','k','*'},
-    {'*',' ','k','k','k',' ','*','k','L','*'},
+    {'*','k','k','k','*','*','*','*',' ','*'},
+    {'*','k','k','k','*',' ',' ',' ',' ','*'},
+    {'*',' ','*','*','*',' ','*',' ',' ','*'},
+    {'*',' ','k','k','k',' ','*',' ','L','*'},
     {'*','*','*','*','*','*','*','*','*','*'}
+};
+
+char andar2_original[LINHAS_ANDAR2][COLUNAS_ANDAR2] = {
+    {'*','*','*','*','*','*','*','*','*','*','*','*','*','*','*'},
+    {'*',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ','*'},
+    {'*',' ','*','*','*','*','*','*','*','*','*',' ',' ',' ','*'},
+    {'*',' ','*','O',' ',' ',' ',' ',' ',' ','*',' ',' ',' ','*'},
+    {'*',' ','*',' ','#','#','#',' ',' ',' ','*',' ',' ',' ','*'},
+    {'*',' ','*',' ','#',' ','#',' ','@',' ','*',' ',' ',' ','*'},
+    {'*',' ','*',' ','#','#','#',' ',' ',' ','*',' ',' ',' ','*'},
+    {'*',' ',' ',' ',' ',' ',' ',' ',' ',' ','*',' ',' ',' ','*'},
+    {'*',' ','*','*','*','*','*','*','*','*','*',' ',' ',' ','*'},
+    {'*',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ','*'},
+    {'*',' ','*','*','*','*','*','*','*','*','*',' ',' ',' ','*'},
+    {'*',' ','*',' ',' ',' ',' ',' ',' ',' ','*',' ',' ',' ','*'},
+    {'*',' ','*',' ',' ',' ',' ',' ',' ',' ','*',' ',' ',' ','*'},
+    {'*',' ','D',' ',' ',' ',' ',' ',' ',' ','*',' ',' ',' ','*'},
+    {'*','*','*','*','*','*','*','*','*','*','L','*','*','*','*'}
 };
 
 char mapa[25][25];
@@ -62,8 +81,6 @@ int total_monstros = 0;
 void carregar_mapa() {
     total_monstros = 0;
 
-    char (*origem)[25] = NULL;
-
     if (fase == 0) {
         linhas_atual  = LINHAS_VILA;
         colunas_atual = COLUNAS_VILA;
@@ -76,6 +93,12 @@ void carregar_mapa() {
         for (int i = 0; i < linhas_atual; i++)
             for (int j = 0; j < colunas_atual; j++)
                 mapa[i][j] = andar1_original[i][j];
+    } else if (fase == 2) {
+        linhas_atual  = LINHAS_ANDAR2;
+        colunas_atual = COLUNAS_ANDAR2;
+        for (int i = 0; i < linhas_atual; i++)
+            for (int j = 0; j < colunas_atual; j++)
+                mapa[i][j] = andar2_original[i][j];
     }
 
     for (int i = 0; i < linhas_atual; i++) {
@@ -107,6 +130,7 @@ void tela_tutorial() {
     printf("  D  = porta fechada\n");
     printf("  =  = porta aberta\n");
     printf("  L  = escada (proxima fase)\n");
+    printf("  O  = botao (cuidado!)\n");
     printf("  N  = NPC\n");
     printf("  X  = monstro tipo 1\n");
     printf("  Y  = monstro tipo 2\n");
@@ -147,6 +171,7 @@ void imprimir_mapa() {
 
     if (fase == 0)      printf("[ Vila ]\n\n");
     else if (fase == 1) printf("[ Masmorra - Andar 1 ]\n\n");
+    else if (fase == 2) printf("[ Masmorra - Andar 2 ]\n\n");
 
     for (int i = 0; i < linhas_atual; i++) {
         for (int j = 0; j < colunas_atual; j++) {
@@ -165,11 +190,26 @@ int eh_parede(int linha, int coluna) {
     return mapa[linha][coluna] == '*';
 }
 
+void spawnar_monstro(int linha, int coluna) {
+    if (total_monstros >= MAX_MONSTROS) return;
+    mapa[linha][coluna] = 'X';
+    monstro_linha[total_monstros]  = linha;
+    monstro_coluna[total_monstros] = coluna;
+    total_monstros++;
+}
+
+void ativar_botao(int linha, int coluna) {
+    mapa[linha][coluna] = ' ';
+    spawnar_monstro(7, 2);
+    printf("\nVoce pressionou o botao! Algo se move na sala...\n");
+    Sleep(800);
+}
+
 void mover_monstros() {
     int direcoes[4][2] = {{-1,0},{1,0},{0,-1},{0,1}};
 
     for (int m = 0; m < total_monstros; m++) {
-        int dir   = rand() % 4;
+        int dir    = rand() % 4;
         int nova_l = monstro_linha[m]  + direcoes[dir][0];
         int nova_c = monstro_coluna[m] + direcoes[dir][1];
 
@@ -363,63 +403,56 @@ void avancar_fase() {
 }
 
 void interagir() {
-    int ordem[4][2];
-    int n = 0;
+    int direcoes[4][2] = {{-1,0},{1,0},{0,-1},{0,1}};
+    int alvo_linha  = -1;
+    int alvo_coluna = -1;
+    char alvo = ' ';
 
-    if (jogador_dir == '^') { ordem[n][0] = -1; ordem[n][1] = 0; n++; }
-    if (jogador_dir == 'v') { ordem[n][0] =  1; ordem[n][1] = 0; n++; }
-    if (jogador_dir == '<') { ordem[n][0] =  0; ordem[n][1] = -1; n++; }
-    if (jogador_dir == '>') { ordem[n][0] =  0; ordem[n][1] =  1; n++; }
+    if (jogador_dir == '^') { alvo_linha = jogador_linha - 1; alvo_coluna = jogador_coluna; }
+    if (jogador_dir == 'v') { alvo_linha = jogador_linha + 1; alvo_coluna = jogador_coluna; }
+    if (jogador_dir == '<') { alvo_linha = jogador_linha;     alvo_coluna = jogador_coluna - 1; }
+    if (jogador_dir == '>') { alvo_linha = jogador_linha;     alvo_coluna = jogador_coluna + 1; }
 
-    int dirs[4][2] = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
-    for (int d = 0; d < 4; d++) {
-        int dl = dirs[d][0], dc = dirs[d][1];
-        int ja_tem = 0;
-        for (int k = 0; k < n; k++)
-            if (ordem[k][0] == dl && ordem[k][1] == dc) { ja_tem = 1; break; }
-        if (!ja_tem) {
-            ordem[n][0] = dl;
-            ordem[n][1] = dc;
-            n++;
-        }
-    }
+    alvo = mapa[alvo_linha][alvo_coluna];
 
-    for (int i = 0; i < 4; i++) {
-        int alvo_linha  = jogador_linha  + ordem[i][0];
-        int alvo_coluna = jogador_coluna + ordem[i][1];
-
-        if (alvo_linha < 0 || alvo_linha >= linhas_atual ||
-            alvo_coluna < 0 || alvo_coluna >= colunas_atual) continue;
-
-        char alvo = mapa[alvo_linha][alvo_coluna];
-
-        if (alvo == '@') {
-            chaves++;
-            mapa[alvo_linha][alvo_coluna] = ' ';
-            printf("\nVoce pegou uma chave! Chaves: %d\n", chaves);
-            _getch();
-            return;
-        } else if (alvo == 'D') {
-            if (chaves > 0) {
-                chaves--;
-                mapa[alvo_linha][alvo_coluna] = '=';
-                printf("\nPorta aberta!\n");
-            } else {
-                printf("\nVoce precisa de uma chave!\n");
+    if (alvo == ' ' || alvo == '*') {
+        for (int d = 0; d < 4; d++) {
+            int l = jogador_linha  + direcoes[d][0];
+            int c = jogador_coluna + direcoes[d][1];
+            char cel = mapa[l][c];
+            if (cel == '@' || cel == 'D' || cel == 'N' || cel == 'L' || cel == 'O') {
+                alvo_linha  = l;
+                alvo_coluna = c;
+                alvo = cel;
+                break;
             }
-            _getch();
-            return;
-        } else if (alvo == 'N') {
-            escolher_arma();
-            return;
-        } else if (alvo == 'L') {
-            avancar_fase();
-            return;
         }
     }
 
-    printf("\nNao ha nada para interagir aqui.\n");
-    _getch();
+    if (alvo == '@') {
+        chaves++;
+        mapa[alvo_linha][alvo_coluna] = ' ';
+        printf("\nVoce pegou uma chave! Chaves: %d\n", chaves);
+        _getch();
+    } else if (alvo == 'D') {
+        if (chaves > 0) {
+            chaves--;
+            mapa[alvo_linha][alvo_coluna] = '=';
+            printf("\nPorta aberta!\n");
+        } else {
+            printf("\nVoce precisa de uma chave!\n");
+        }
+        _getch();
+    } else if (alvo == 'N') {
+        escolher_arma();
+    } else if (alvo == 'O') {
+        ativar_botao(alvo_linha, alvo_coluna);
+    } else if (alvo == 'L') {
+        avancar_fase();
+    } else {
+        printf("\nNao ha nada para interagir aqui.\n");
+        _getch();
+    }
 }
 
 void mover(int nova_linha, int nova_coluna, char direcao) {
