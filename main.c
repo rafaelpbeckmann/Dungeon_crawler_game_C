@@ -33,16 +33,16 @@ char vila_original[LINHAS_VILA][COLUNAS_VILA] = {
 
 char andar1_original[LINHAS_ANDAR1][COLUNAS_ANDAR1] = {
     {'*','*','*','*','*','*','*','*','*','*'},
-    {'*','>',' ',' ',' ',' ',' ',' ',' ','*'},
+    {'*',' ',' ',' ',' ',' ',' ',' ',' ','*'},
     {'*',' ','*','*','*','*',' ',' ',' ','*'},
     {'*',' ',' ',' ',' ','*',' ',' ',' ','*'},
-    {'*',' ','*','@',' ','*',' ',' ',' ','*'},
+    {'*',' ',' ','@',' ','*',' ',' ',' ','*'},
     {'*','*','D','*','*','*','*','*','*','*'},
     {'*','k','k','k',' ',' ',' ',' ',' ','*'},
-    {'*','k','k','k',' ',' ','*','*',' ','*'},
-    {'*',' ',' ',' ',' ','*',' ',' ',' ','*'},
-    {'*',' ','*','*','*',' ','*',' ','L','*'},
-    {'*',' ','*',' ',' ',' ',' ',' ',' ','*'},
+    {'*','k','k','k','*','*','*','*','*','*'},
+    {'*',' ',' ',' ','*',' ',' ',' ',' ','*'},
+    {'*',' ','*','*','*',' ','*','k','k','*'},
+    {'*',' ','k','k','k',' ','*','k','L','*'},
     {'*','*','*','*','*','*','*','*','*','*'}
 };
 
@@ -363,38 +363,63 @@ void avancar_fase() {
 }
 
 void interagir() {
-    int alvo_linha  = jogador_linha;
-    int alvo_coluna = jogador_coluna;
+    int ordem[4][2];
+    int n = 0;
 
-    if (jogador_dir == '^') alvo_linha--;
-    if (jogador_dir == 'v') alvo_linha++;
-    if (jogador_dir == '<') alvo_coluna--;
-    if (jogador_dir == '>') alvo_coluna++;
+    if (jogador_dir == '^') { ordem[n][0] = -1; ordem[n][1] = 0; n++; }
+    if (jogador_dir == 'v') { ordem[n][0] =  1; ordem[n][1] = 0; n++; }
+    if (jogador_dir == '<') { ordem[n][0] =  0; ordem[n][1] = -1; n++; }
+    if (jogador_dir == '>') { ordem[n][0] =  0; ordem[n][1] =  1; n++; }
 
-    char alvo = mapa[alvo_linha][alvo_coluna];
-
-    if (alvo == '@') {
-        chaves++;
-        mapa[alvo_linha][alvo_coluna] = ' ';
-        printf("\nVoce pegou uma chave! Chaves: %d\n", chaves);
-        _getch();
-    } else if (alvo == 'D') {
-        if (chaves > 0) {
-            chaves--;
-            mapa[alvo_linha][alvo_coluna] = '=';
-            printf("\nPorta aberta!\n");
-        } else {
-            printf("\nVoce precisa de uma chave!\n");
+    int dirs[4][2] = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
+    for (int d = 0; d < 4; d++) {
+        int dl = dirs[d][0], dc = dirs[d][1];
+        int ja_tem = 0;
+        for (int k = 0; k < n; k++)
+            if (ordem[k][0] == dl && ordem[k][1] == dc) { ja_tem = 1; break; }
+        if (!ja_tem) {
+            ordem[n][0] = dl;
+            ordem[n][1] = dc;
+            n++;
         }
-        _getch();
-    } else if (alvo == 'N') {
-        escolher_arma();
-    } else if (alvo == 'L') {
-        avancar_fase();
-    } else {
-        printf("\nNao ha nada para interagir aqui.\n");
-        _getch();
     }
+
+    for (int i = 0; i < 4; i++) {
+        int alvo_linha  = jogador_linha  + ordem[i][0];
+        int alvo_coluna = jogador_coluna + ordem[i][1];
+
+        if (alvo_linha < 0 || alvo_linha >= linhas_atual ||
+            alvo_coluna < 0 || alvo_coluna >= colunas_atual) continue;
+
+        char alvo = mapa[alvo_linha][alvo_coluna];
+
+        if (alvo == '@') {
+            chaves++;
+            mapa[alvo_linha][alvo_coluna] = ' ';
+            printf("\nVoce pegou uma chave! Chaves: %d\n", chaves);
+            _getch();
+            return;
+        } else if (alvo == 'D') {
+            if (chaves > 0) {
+                chaves--;
+                mapa[alvo_linha][alvo_coluna] = '=';
+                printf("\nPorta aberta!\n");
+            } else {
+                printf("\nVoce precisa de uma chave!\n");
+            }
+            _getch();
+            return;
+        } else if (alvo == 'N') {
+            escolher_arma();
+            return;
+        } else if (alvo == 'L') {
+            avancar_fase();
+            return;
+        }
+    }
+
+    printf("\nNao ha nada para interagir aqui.\n");
+    _getch();
 }
 
 void mover(int nova_linha, int nova_coluna, char direcao) {
