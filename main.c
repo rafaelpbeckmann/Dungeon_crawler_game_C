@@ -8,16 +8,19 @@
 #define MAX_MONSTROS 10
 #define limpar_tela() printf("\033[H\033[J")
 
-#define LINHAS_VILA 10
-#define COLUNAS_VILA 10
+#define LINHAS_VILA   10
+#define COLUNAS_VILA  10
+#define LINHAS_ANDAR1  10
+#define COLUNAS_ANDAR1 10
 
 int vidas  = 3;
 int chaves = 0;
 int arma   = 0;
+int fase   = 0;
 
 char vila_original[LINHAS_VILA][COLUNAS_VILA] = {
     {'*','*','*','*','*','*','*','*','*','*'},
-    {'*',' ','*',' ','*',' ',' ',' ',' ','*'},
+    {'*',' ',' ',' ','*',' ',' ',' ',' ','*'},
     {'*','@',' ',' ','*',' ',' ',' ',' ','*'},
     {'*',' ',' ',' ','D',' ',' ',' ',' ','*'},
     {'*',' ',' ',' ','*',' ',' ','*','*','*'},
@@ -28,7 +31,20 @@ char vila_original[LINHAS_VILA][COLUNAS_VILA] = {
     {'*','*','*','*','*','*','*','*','*','*'}
 };
 
-char mapa[LINHAS_VILA][COLUNAS_VILA];
+char andar1_original[LINHAS_ANDAR1][COLUNAS_ANDAR1] = {
+    {'*','*','*','*','*','*','*','*','*','*'},
+    {'*',' ',' ',' ',' ',' ',' ',' ',' ','*'},
+    {'*',' ','*','*','*',' ','*','*',' ','*'},
+    {'*',' ',' ',' ','*',' ','@',' ',' ','*'},
+    {'*',' ','k',' ','*',' ',' ',' ',' ','*'},
+    {'*',' ','k',' ','*','*',' ','*','*','*'},
+    {'*',' ',' ',' ',' ','D',' ',' ',' ','*'},
+    {'*',' ','*','*','*','*',' ','*',' ','*'},
+    {'*',' ',' ',' ',' ',' ',' ','*',' ','*'},
+    {'*','*','*','*','*','*','*','*','L','*'}
+};
+
+char mapa[25][25];
 
 int linhas_atual  = LINHAS_VILA;
 int colunas_atual = COLUNAS_VILA;
@@ -43,10 +59,26 @@ int total_monstros = 0;
 
 void carregar_mapa() {
     total_monstros = 0;
+
+    char (*origem)[25] = NULL;
+
+    if (fase == 0) {
+        linhas_atual  = LINHAS_VILA;
+        colunas_atual = COLUNAS_VILA;
+        for (int i = 0; i < linhas_atual; i++)
+            for (int j = 0; j < colunas_atual; j++)
+                mapa[i][j] = vila_original[i][j];
+    } else if (fase == 1) {
+        linhas_atual  = LINHAS_ANDAR1;
+        colunas_atual = COLUNAS_ANDAR1;
+        for (int i = 0; i < linhas_atual; i++)
+            for (int j = 0; j < colunas_atual; j++)
+                mapa[i][j] = andar1_original[i][j];
+    }
+
     for (int i = 0; i < linhas_atual; i++) {
         for (int j = 0; j < colunas_atual; j++) {
-            mapa[i][j] = vila_original[i][j];
-            if (vila_original[i][j] == 'X') {
+            if (mapa[i][j] == 'X') {
                 monstro_linha[total_monstros]  = i;
                 monstro_coluna[total_monstros] = j;
                 total_monstros++;
@@ -110,6 +142,9 @@ void imprimir_mapa() {
     else if (arma == 2) printf("Arco\n\n");
     else if (arma == 3) printf("Cajado\n\n");
     else                printf("Nenhuma\n\n");
+
+    if (fase == 0)      printf("[ Vila ]\n\n");
+    else if (fase == 1) printf("[ Masmorra - Andar 1 ]\n\n");
 
     for (int i = 0; i < linhas_atual; i++) {
         for (int j = 0; j < colunas_atual; j++) {
@@ -315,6 +350,16 @@ void atacar() {
     if (arma == 3) atacar_cajado();
 }
 
+void avancar_fase() {
+    fase++;
+    chaves = 0;
+    jogador_linha  = 1;
+    jogador_coluna = 1;
+    jogador_dir    = '>';
+    carregar_mapa();
+    imprimir_mapa();
+}
+
 void interagir() {
     int alvo_linha  = jogador_linha;
     int alvo_coluna = jogador_coluna;
@@ -343,8 +388,7 @@ void interagir() {
     } else if (alvo == 'N') {
         escolher_arma();
     } else if (alvo == 'L') {
-        printf("\nVoce subiu a escada! (proxima fase em breve)\n");
-        _getch();
+        avancar_fase();
     } else {
         printf("\nNao ha nada para interagir aqui.\n");
         _getch();
@@ -373,8 +417,7 @@ void jogar() {
     srand(time(NULL));
     vidas  = 3;
     arma   = 0;
-    linhas_atual  = LINHAS_VILA;
-    colunas_atual = COLUNAS_VILA;
+    fase   = 0;
     carregar_mapa();
     resetar_jogador();
     imprimir_mapa();
