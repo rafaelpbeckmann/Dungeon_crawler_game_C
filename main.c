@@ -5,7 +5,8 @@
 #include <time.h>
 
 #define MAX_CELULAS_ATAQUE 12
-#define MAX_MONSTROS 10
+#define MAX_MONSTROS 20
+#define MAX_ESPINHOS_TEMP 8
 #define limpar_tela() printf("\033[H\033[J")
 
 #define LINHAS_VILA    10
@@ -14,11 +15,26 @@
 #define COLUNAS_ANDAR1 10
 #define LINHAS_ANDAR2  15
 #define COLUNAS_ANDAR2 15
+#define LINHAS_ANDAR3  25
+#define COLUNAS_ANDAR3 25
 
 int vidas  = 3;
 int chaves = 0;
 int arma   = 0;
 int fase   = 0;
+
+int boss_vida          = 3;
+int boss_linha         = 10;
+int boss_coluna        = 12;
+int boss_ativo         = 0;
+int boss_atordoado     = 0;
+int boss_turno         = 0;
+int boss_derrotado     = 0;
+
+int espinho_temp_linha[MAX_ESPINHOS_TEMP];
+int espinho_temp_coluna[MAX_ESPINHOS_TEMP];
+int espinho_temp_timer[MAX_ESPINHOS_TEMP];
+int total_espinhos_temp = 0;
 
 char vila_original[LINHAS_VILA][COLUNAS_VILA] = {
     {'*','*','*','*','*','*','*','*','*','*'},
@@ -65,6 +81,34 @@ char andar2_original[LINHAS_ANDAR2][COLUNAS_ANDAR2] = {
     {'*','*','*','*','*','*','*','*','*','L','*','*','*','*','*'}
 };
 
+char andar3_original[LINHAS_ANDAR3][COLUNAS_ANDAR3] = {
+    {'*','*','*','*','*','*','*','*','*','*','*','*','*','*','*','*','*','*','*','*','*','*','*','*','*'},
+    {'*',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ','*'},
+    {'*',' ','*','*','*','*','*','*','*','*','*','*','*','*','*','*','*','*','*','*','*','*','*',' ','*'},
+    {'*',' ','*','@',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ','*',' ','*'},
+    {'*',' ','*',' ','*','*','*','*','*','*','*','*','*','*','*','*','*','*','*','*','*',' ','*',' ','*'},
+    {'*',' ','*',' ','*',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ','*',' ','*',' ','*'},
+    {'*',' ','*',' ','*',' ','*','*','*','*','*','*','*','*','*','*','*','*','*',' ','*',' ','*',' ','*'},
+    {'*',' ','*',' ','*',' ','*',' ',' ',' ','O',' ',' ',' ',' ',' ',' ',' ','*',' ','*',' ','*',' ','*'},
+    {'*',' ','*',' ','*',' ','*',' ','#','#','#','#','#',' ',' ',' ',' ',' ','*',' ','*',' ','*',' ','*'},
+    {'*',' ','*',' ','*',' ','*',' ','#',' ',' ',' ','#',' ',' ',' ',' ',' ','*',' ','*',' ','*',' ','*'},
+    {'*',' ','*',' ','*',' ','*',' ','#',' ','Z',' ','#',' ',' ',' ',' ',' ','*',' ','*',' ','*',' ','*'},
+    {'*',' ','*',' ','*',' ','*',' ','#',' ',' ',' ','#',' ',' ',' ',' ',' ','*',' ','*',' ','*',' ','*'},
+    {'*',' ','*',' ','*',' ','*',' ','#','#','#','#','#',' ',' ',' ',' ',' ','*',' ','*',' ','*',' ','*'},
+    {'*',' ','*',' ','*',' ','D',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ','*',' ','*',' ','*',' ','*'},
+    {'*',' ','*',' ','*',' ','*','*','*','*','*','*','*','*','*','*','*','*','*',' ','*',' ','*',' ','*'},
+    {'*',' ','*',' ','*','@',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ','*',' ','*',' ','*'},
+    {'*',' ','*',' ','D',' ','*','*','*','*','*','*','*','*','*','*','*','*','*','*','*',' ','*',' ','*'},
+    {'*',' ','*',' ',' ',' ',' ',' ',' ',' ','Y',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ','*',' ','*'},
+    {'*',' ','*','*','*','*','*','*','*','*','*','*','*','*','*','*','*','*','*','*','*',' ','*',' ','*'},
+    {'*',' ','*','@',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ','*',' ','*',' ','*'},
+    {'*',' ','*',' ','*','*','*','*','*','*','*','*','*','*','*','*','*','*','*',' ','*',' ','*',' ','*'},
+    {'*',' ','*',' ',' ',' ',' ',' ',' ',' ','Y',' ',' ',' ',' ',' ',' ',' ','*',' ','*',' ','*',' ','*'},
+    {'*',' ','*',' ','*','*','*','*','*','*','*','*','*','*','*','*','*','*','D',' ','*',' ','*',' ','*'},
+    {'*',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ','*'},
+    {'*','*','*','*','*','*','*','*','*','*','*','*','*','*','*','*','*','*','*','*','*','*','*','L','*'}
+};
+
 char mapa[25][25];
 
 int linhas_atual  = LINHAS_VILA;
@@ -76,10 +120,17 @@ char jogador_dir   = '>';
 
 int monstro_linha[MAX_MONSTROS];
 int monstro_coluna[MAX_MONSTROS];
+int monstro_tipo[MAX_MONSTROS];
 int total_monstros = 0;
 
 void carregar_mapa() {
-    total_monstros = 0;
+    total_monstros      = 0;
+    total_espinhos_temp = 0;
+    boss_vida       = 3;
+    boss_ativo      = 0;
+    boss_atordoado  = 0;
+    boss_turno      = 0;
+    boss_derrotado  = 0;
 
     if (fase == 0) {
         linhas_atual  = LINHAS_VILA;
@@ -99,6 +150,12 @@ void carregar_mapa() {
         for (int i = 0; i < linhas_atual; i++)
             for (int j = 0; j < colunas_atual; j++)
                 mapa[i][j] = andar2_original[i][j];
+    } else if (fase == 3) {
+        linhas_atual  = LINHAS_ANDAR3;
+        colunas_atual = COLUNAS_ANDAR3;
+        for (int i = 0; i < linhas_atual; i++)
+            for (int j = 0; j < colunas_atual; j++)
+                mapa[i][j] = andar3_original[i][j];
     }
 
     for (int i = 0; i < linhas_atual; i++) {
@@ -106,7 +163,16 @@ void carregar_mapa() {
             if (mapa[i][j] == 'X') {
                 monstro_linha[total_monstros]  = i;
                 monstro_coluna[total_monstros] = j;
+                monstro_tipo[total_monstros]   = 1;
                 total_monstros++;
+            } else if (mapa[i][j] == 'Y') {
+                monstro_linha[total_monstros]  = i;
+                monstro_coluna[total_monstros] = j;
+                monstro_tipo[total_monstros]   = 2;
+                total_monstros++;
+            } else if (mapa[i][j] == 'Z') {
+                boss_linha = i;
+                boss_coluna = j;
             }
         }
     }
@@ -161,17 +227,37 @@ void tela_game_over() {
     _getch();
 }
 
+void tela_vitoria() {
+    limpar_tela();
+    printf("=== VITORIA! ===\n\n");
+    printf("Voce derrotou o Boss e salvou o reino!\n\n");
+    printf("A escuridao que assolava a masmorra foi finalmente dissipada.\n");
+    printf("Os habitantes da vila podem viver em paz novamente.\n\n");
+    printf("Parabens, aventureiro!\n\n");
+    printf("Pressione qualquer tecla para voltar ao menu...\n");
+    _getch();
+}
+
 void imprimir_mapa() {
     limpar_tela();
     printf("Vidas: %d  |  Chaves: %d  |  Arma: ", vidas, chaves);
-    if (arma == 1)      printf("Espada\n\n");
-    else if (arma == 2) printf("Arco\n\n");
-    else if (arma == 3) printf("Cajado\n\n");
-    else                printf("Nenhuma\n\n");
+    if (arma == 1)      printf("Espada");
+    else if (arma == 2) printf("Arco");
+    else if (arma == 3) printf("Cajado");
+    else                printf("Nenhuma");
+
+    if (fase == 3) printf("  |  Boss: %d/3 vidas", boss_vida);
+    printf("\n\n");
 
     if (fase == 0)      printf("[ Vila ]\n\n");
     else if (fase == 1) printf("[ Masmorra - Andar 1 ]\n\n");
     else if (fase == 2) printf("[ Masmorra - Andar 2 ]\n\n");
+    else if (fase == 3) {
+        if (boss_atordoado > 0)
+            printf("[ Masmorra - Andar 3 ] *** BOSS ATORDOADO! (%d turnos restantes) ***\n\n", boss_atordoado);
+        else
+            printf("[ Masmorra - Andar 3 ]\n\n");
+    }
 
     for (int i = 0; i < linhas_atual; i++) {
         for (int j = 0; j < colunas_atual; j++) {
@@ -192,39 +278,143 @@ int eh_parede(int linha, int coluna) {
 
 void spawnar_monstro(int linha, int coluna) {
     if (total_monstros >= MAX_MONSTROS) return;
+    if (mapa[linha][coluna] != ' ') return;
     mapa[linha][coluna] = 'X';
     monstro_linha[total_monstros]  = linha;
     monstro_coluna[total_monstros] = coluna;
+    monstro_tipo[total_monstros]   = 1;
     total_monstros++;
 }
 
 void ativar_botao(int linha, int coluna) {
     mapa[linha][coluna] = ' ';
-    spawnar_monstro(7, 2);
-    printf("\nVoce pressionou o botao! Algo se move na sala...\n");
+    if (fase == 2) {
+        spawnar_monstro(7, 2);
+        printf("\nVoce pressionou o botao! Algo se move na sala...\n");
+    } else if (fase == 3) {
+        boss_atordoado = 3;
+        printf("\nVoce pressionou o botao! O boss foi atordoado por 3 turnos!\n");
+    }
     Sleep(800);
+}
+
+void remover_espinhos_temp() {
+    for (int i = 0; i < total_espinhos_temp; i++) {
+        espinho_temp_timer[i]--;
+        if (espinho_temp_timer[i] <= 0) {
+            mapa[espinho_temp_linha[i]][espinho_temp_coluna[i]] = ' ';
+            for (int k = i; k < total_espinhos_temp - 1; k++) {
+                espinho_temp_linha[k]  = espinho_temp_linha[k+1];
+                espinho_temp_coluna[k] = espinho_temp_coluna[k+1];
+                espinho_temp_timer[k]  = espinho_temp_timer[k+1];
+            }
+            total_espinhos_temp--;
+            i--;
+        }
+    }
+}
+
+void boss_lancar_espinhos() {
+    int dl[] = {-1, 1, 0, 0, -1, -1, 1, 1};
+    int dc[] = {0, 0, -1, 1, -1, 1, -1, 1};
+
+    for (int d = 0; d < 8; d++) {
+        int l = jogador_linha  + dl[d];
+        int c = jogador_coluna + dc[d];
+        if (l < 0 || l >= linhas_atual || c < 0 || c >= colunas_atual) continue;
+        if (mapa[l][c] != ' ') continue;
+        if (total_espinhos_temp >= MAX_ESPINHOS_TEMP) continue;
+
+        mapa[l][c] = '#';
+        espinho_temp_linha[total_espinhos_temp]  = l;
+        espinho_temp_coluna[total_espinhos_temp] = c;
+        espinho_temp_timer[total_espinhos_temp]  = 3;
+        total_espinhos_temp++;
+    }
+    printf("\nO boss lancou espinhos ao seu redor!\n");
+    Sleep(600);
+}
+
+void mover_boss() {
+    if (boss_derrotado) return;
+    if (fase != 3) return;
+
+    int dist_linha = abs(jogador_linha - boss_linha);
+    int dist_coluna = abs(jogador_coluna - boss_coluna);
+
+    if (dist_linha + dist_coluna > 5 && !boss_ativo) return;
+    boss_ativo = 1;
+
+    if (boss_atordoado > 0) {
+        boss_atordoado--;
+        return;
+    }
+
+    boss_turno++;
+
+    if (boss_turno % 10 == 0) boss_lancar_espinhos();
+
+    if (boss_turno % 5 == 0) {
+        int dl[] = {-1, 1, 0, 0};
+        int dc[] = {0, 0, -1, 1};
+        for (int d = 0; d < 4; d++) {
+            int l = boss_linha  + dl[d];
+            int c = boss_coluna + dc[d];
+            spawnar_monstro(l, c);
+        }
+    }
+
+    int nova_l = boss_linha;
+    int nova_c = boss_coluna;
+
+    if (abs(jogador_linha - boss_linha) > abs(jogador_coluna - boss_coluna)) {
+        nova_l += (jogador_linha > boss_linha) ? 1 : -1;
+    } else {
+        nova_c += (jogador_coluna > boss_coluna) ? 1 : -1;
+    }
+
+    if (nova_l < 0 || nova_l >= linhas_atual || nova_c < 0 || nova_c >= colunas_atual) return;
+    char destino = mapa[nova_l][nova_c];
+    if (destino != ' ' && destino != '=') return;
+
+    mapa[boss_linha][boss_coluna] = ' ';
+    boss_linha  = nova_l;
+    boss_coluna = nova_c;
+    mapa[nova_l][nova_c] = 'Z';
 }
 
 void mover_monstros() {
     int direcoes[4][2] = {{-1,0},{1,0},{0,-1},{0,1}};
 
     for (int m = 0; m < total_monstros; m++) {
-        int dir    = rand() % 4;
-        int nova_l = monstro_linha[m]  + direcoes[dir][0];
-        int nova_c = monstro_coluna[m] + direcoes[dir][1];
+        int nova_l, nova_c;
+
+        if (monstro_tipo[m] == 1) {
+            int dir = rand() % 4;
+            nova_l = monstro_linha[m] + direcoes[dir][0];
+            nova_c = monstro_coluna[m] + direcoes[dir][1];
+        } else {
+            if (abs(jogador_linha - monstro_linha[m]) > abs(jogador_coluna - monstro_coluna[m])) {
+                nova_l = monstro_linha[m] + (jogador_linha > monstro_linha[m] ? 1 : -1);
+                nova_c = monstro_coluna[m];
+            } else {
+                nova_l = monstro_linha[m];
+                nova_c = monstro_coluna[m] + (jogador_coluna > monstro_coluna[m] ? 1 : -1);
+            }
+        }
 
         if (nova_l < 0 || nova_l >= linhas_atual || nova_c < 0 || nova_c >= colunas_atual) continue;
 
         char destino = mapa[nova_l][nova_c];
-
         if (destino == '*' || destino == '#' || destino == 'k' ||
             destino == 'D' || destino == 'N' || destino == 'X' ||
             destino == 'Y' || destino == 'Z') continue;
 
+        char simbolo = (monstro_tipo[m] == 1) ? 'X' : 'Y';
         mapa[monstro_linha[m]][monstro_coluna[m]] = ' ';
         monstro_linha[m]  = nova_l;
         monstro_coluna[m] = nova_c;
-        mapa[nova_l][nova_c] = 'X';
+        mapa[nova_l][nova_c] = simbolo;
     }
 }
 
@@ -232,10 +422,31 @@ int verificar_morte() {
     char celula = mapa[jogador_linha][jogador_coluna];
     if (celula == '#') return 1;
 
+    if (jogador_linha == boss_linha && jogador_coluna == boss_coluna) return 1;
+
     for (int m = 0; m < total_monstros; m++) {
         if (monstro_linha[m] == jogador_linha && monstro_coluna[m] == jogador_coluna) return 1;
     }
     return 0;
+}
+
+void atacar_boss() {
+    if (boss_atordoado > 0) {
+        boss_vida--;
+        if (boss_vida <= 0) {
+            mapa[boss_linha][boss_coluna] = ' ';
+            boss_derrotado = 1;
+            printf("\nVoce derrotou o Boss!\n");
+            Sleep(1000);
+            tela_vitoria();
+        } else {
+            printf("\nBoss atingido! Vida restante: %d/3\n", boss_vida);
+            Sleep(600);
+        }
+    } else {
+        printf("\nO boss e muito forte! Use o botao para atordoa-lo primeiro!\n");
+        Sleep(600);
+    }
 }
 
 void atacar_celula(int linha, int coluna) {
@@ -245,18 +456,21 @@ void atacar_celula(int linha, int coluna) {
 
     if (alvo == 'k') {
         mapa[linha][coluna] = ' ';
-    } else if (alvo == 'X') {
+    } else if (alvo == 'X' || alvo == 'Y') {
         mapa[linha][coluna] = ' ';
         for (int m = 0; m < total_monstros; m++) {
             if (monstro_linha[m] == linha && monstro_coluna[m] == coluna) {
                 for (int k = m; k < total_monstros - 1; k++) {
                     monstro_linha[k]  = monstro_linha[k+1];
                     monstro_coluna[k] = monstro_coluna[k+1];
+                    monstro_tipo[k]   = monstro_tipo[k+1];
                 }
                 total_monstros--;
                 break;
             }
         }
+    } else if (alvo == 'Z') {
+        atacar_boss();
     }
 }
 
@@ -393,6 +607,7 @@ void atacar() {
 }
 
 void avancar_fase() {
+    if (fase >= 3) return;
     fase++;
     chaves = 0;
     jogador_linha  = 1;
@@ -487,6 +702,7 @@ void jogar() {
         tecla = _getch();
 
         if (tecla == 'q') break;
+        if (boss_derrotado) { menu(); return; }
 
         if (tecla == 'w') mover(jogador_linha - 1, jogador_coluna, '^');
         if (tecla == 's') mover(jogador_linha + 1, jogador_coluna, 'v');
@@ -496,6 +712,8 @@ void jogar() {
         if (tecla == 'o') atacar();
 
         mover_monstros();
+        mover_boss();
+        remover_espinhos_temp();
 
         if (verificar_morte()) {
             vidas--;
