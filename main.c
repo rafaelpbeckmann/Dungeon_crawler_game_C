@@ -78,11 +78,11 @@ char andar2_original[LINHAS_ANDAR2][COLUNAS_ANDAR2] = {
     {'*',' ','*',' ','#','#','#',' ',' ',' ','*',' ',' ',' ','*'},
     {'*',' ',' ',' ',' ',' ',' ',' ',' ',' ','*',' ',' ',' ','*'},
     {'*',' ','*','*','*','*','*','*','*','*','*',' ',' ',' ','*'},
-    {'*',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ','*'},
+    {'*',' ',' ',' ',' ',' ','@',' ',' ',' ',' ',' ',' ',' ','*'},
     {'*',' ','*','*','*','*','*','*','*','*','*',' ',' ',' ','*'},
     {'*',' ','*',' ',' ','X',' ',' ',' ',' ','*',' ',' ',' ','*'},
     {'*',' ','*',' ',' ',' ',' ',' ',' ',' ','*',' ',' ',' ','*'},
-    {'*',' ','D',' ',' ',' ',' ',' ',' ',' ','*',' ',' ',' ','*'},
+    {'*',' ','D',' ',' ',' ',' ',' ',' ','D','*',' ',' ',' ','*'},
     {'*','*','*','*','*','*','*','*','*','L','*','*','*','*','*'}
 };
 
@@ -127,6 +127,8 @@ int monstro_linha[MAX_MONSTROS];
 int monstro_coluna[MAX_MONSTROS];
 int monstro_tipo[MAX_MONSTROS];
 int total_monstros = 0;
+
+void menu();
 
 void carregar_mapa() {
     total_monstros      = 0;
@@ -294,6 +296,15 @@ void ativar_botao(int linha, int coluna) {
     if (fase == 2) {
         spawnar_monstro(7, 2);
         printf("\nVoce pressionou o botao! Algo se move na sala...\n");
+    } else if (fase == 3) {
+        boss_vida--;
+        printf("\nUma armadilha atinge o boss! Vida do boss: %d/3\n", boss_vida);
+        if (boss_vida <= 0) {
+            boss_derrotado = 1;
+            mapa[boss_linha][boss_coluna] = ' ';
+            tela_vitoria();
+            return;
+        }
     }
     Sleep(800);
 }
@@ -635,7 +646,12 @@ void interagir() {
     } else if (alvo == 'O') {
         ativar_botao(alvo_linha, alvo_coluna);
     } else if (alvo == 'L') {
-        avancar_fase();
+        if (fase == 3 && boss_derrotado == 0) {
+            printf("\nVoce precisa derrotar o boss primeiro!\n");
+            _getch();
+        } else {
+            avancar_fase();
+        }
     } else {
         printf("\nNao ha nada para interagir aqui.\n");
         _getch();
