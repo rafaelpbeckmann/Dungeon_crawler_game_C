@@ -19,13 +19,15 @@
 #define COLUNAS_ANDAR3 25
 #define BOSS_SALA_CENTRO_LINHA  22
 #define BOSS_SALA_CENTRO_COLUNA 12
+#define BOSS_VIDA_MAX           10
+#define BOSS_INTERVALO_CONJURAR 5
 
 int vidas  = 3;
 int chaves = 0;
 int arma   = 0;
 int fase   = 0;
 
-int boss_vida              = 3;
+int boss_vida              = BOSS_VIDA_MAX;
 int boss_linha             = 22;
 int boss_coluna            = 12;
 int boss_linha_inicial     = 22;
@@ -126,6 +128,7 @@ char jogador_dir   = '>';
 int monstro_linha[MAX_MONSTROS];
 int monstro_coluna[MAX_MONSTROS];
 int monstro_tipo[MAX_MONSTROS];
+int monstro_conjurado_boss[MAX_MONSTROS];
 int total_monstros = 0;
 
 void menu();
@@ -133,7 +136,7 @@ void menu();
 void carregar_mapa() {
     total_monstros      = 0;
     total_espinhos_temp = 0;
-    boss_vida         = 3;
+    boss_vida         = BOSS_VIDA_MAX;
     boss_ativo        = 0;
     boss_turno        = 0;
     boss_derrotado    = 0;
@@ -171,12 +174,14 @@ void carregar_mapa() {
             if (mapa[i][j] == 'X') {
                 monstro_linha[total_monstros]  = i;
                 monstro_coluna[total_monstros] = j;
-                monstro_tipo[total_monstros]   = 1;
+                monstro_tipo[total_monstros]        = 1;
+                monstro_conjurado_boss[total_monstros] = 0;
                 total_monstros++;
             } else if (mapa[i][j] == 'Y') {
-                monstro_linha[total_monstros]  = i;
-                monstro_coluna[total_monstros] = j;
-                monstro_tipo[total_monstros]   = 2;
+                monstro_linha[total_monstros]       = i;
+                monstro_coluna[total_monstros]      = j;
+                monstro_tipo[total_monstros]        = 2;
+                monstro_conjurado_boss[total_monstros] = 0;
                 total_monstros++;
             } else if (mapa[i][j] == 'Z') {
                 boss_linha          = i;
@@ -256,7 +261,7 @@ void imprimir_mapa() {
     else if (arma == 3) printf("Cajado");
     else                printf("Nenhuma");
 
-    if (fase == 3) printf("  |  Boss: %d/3 vidas", boss_vida);
+    if (fase == 3) printf("  |  Boss: %d/%d vidas", boss_vida, BOSS_VIDA_MAX);
     printf("\n\n");
 
     if (fase == 0)      printf("[ Vila ]\n\n");
@@ -281,24 +286,57 @@ int eh_parede(int linha, int coluna) {
     return mapa[linha][coluna] == '*';
 }
 
-void spawnar_monstro(int linha, int coluna) {
+void spawnar_monstro(int linha, int coluna, int tipo) {
     if (total_monstros >= MAX_MONSTROS) return;
     if (mapa[linha][coluna] != ' ') return;
-    mapa[linha][coluna] = 'X';
-    monstro_linha[total_monstros]  = linha;
-    monstro_coluna[total_monstros] = coluna;
-    monstro_tipo[total_monstros]   = 1;
+    mapa[linha][coluna] = (tipo == 2) ? 'Y' : 'X';
+    monstro_linha[total_monstros]       = linha;
+    monstro_coluna[total_monstros]      = coluna;
+    monstro_tipo[total_monstros]        = tipo;
+    monstro_conjurado_boss[total_monstros] = 0;
     total_monstros++;
+}
+
+int boss_tem_conjurados_vivos() {
+    for (int m = 0; m < total_monstros; m++) {
+        if (monstro_conjurado_boss[m]) return 1;
+    }
+    return 0;
+}
+
+void boss_conjurar_monstro() {
+    if (total_monstros >= MAX_MONSTROS) return;
+    if (boss_tem_conjurados_vivos()) return;
+
+    int dl[] = {-1, 1, 0, 0};
+    int dc[] = {0, 0, -1, 1};
+    int inicio = rand() % 4;
+
+    for (int t = 0; t < 4; t++) {
+        int d = (inicio + t) % 4;
+        int linha  = boss_linha + dl[d];
+        int coluna = boss_coluna + dc[d];
+        if (linha < 0 || linha >= linhas_atual || coluna < 0 || coluna >= colunas_atual) continue;
+        if (mapa[linha][coluna] != ' ') continue;
+
+        mapa[linha][coluna] = 'Y';
+        monstro_linha[total_monstros]          = linha;
+        monstro_coluna[total_monstros]         = coluna;
+        monstro_tipo[total_monstros]           = 2;
+        monstro_conjurado_boss[total_monstros] = 1;
+        total_monstros++;
+        return;
+    }
 }
 
 void ativar_botao(int linha, int coluna) {
     mapa[linha][coluna] = ' ';
     if (fase == 2) {
-        spawnar_monstro(7, 2);
+        spawnar_monstro(7, 2, 1);
         printf("\nVoce pressionou o botao! Algo se move na sala...\n");
     } else if (fase == 3) {
         boss_vida--;
-        printf("\nUma armadilha atinge o boss! Vida do boss: %d/3\n", boss_vida);
+        printf("\nUma armadilha atinge o boss! Vida do boss: %d/%d\n", boss_vida, BOSS_VIDA_MAX);
         if (boss_vida <= 0) {
             boss_derrotado = 1;
             mapa[boss_linha][boss_coluna] = ' ';
@@ -338,11 +376,8 @@ void mover_boss() {
 
     boss_turno++;
 
-    if (boss_turno % 5 == 0) {
-        int dl[] = {-1, 1, 0, 0};
-        int dc[] = {0, 0, -1, 1};
-        int d = rand() % 4;
-        spawnar_monstro(boss_linha + dl[d], boss_coluna + dc[d]);
+    if (boss_turno % BOSS_INTERVALO_CONJURAR == 0) {
+        boss_conjurar_monstro();
     }
 
     int nova_l = boss_linha;
@@ -427,7 +462,7 @@ void atacar_boss() {
         mapa[boss_linha][boss_coluna] = 'Z';
         boss_pular_turno   = 1;
         boss_imune_colisao = 1;
-        printf("\nBoss atingido! Vida restante: %d/3\n", boss_vida);
+        printf("\nBoss atingido! Vida restante: %d/%d\n", boss_vida, BOSS_VIDA_MAX);
         Sleep(600);
     }
 }
@@ -444,9 +479,10 @@ void atacar_celula(int linha, int coluna) {
         for (int m = 0; m < total_monstros; m++) {
             if (monstro_linha[m] == linha && monstro_coluna[m] == coluna) {
                 for (int k = m; k < total_monstros - 1; k++) {
-                    monstro_linha[k]  = monstro_linha[k+1];
-                    monstro_coluna[k] = monstro_coluna[k+1];
-                    monstro_tipo[k]   = monstro_tipo[k+1];
+                    monstro_linha[k]          = monstro_linha[k+1];
+                    monstro_coluna[k]         = monstro_coluna[k+1];
+                    monstro_tipo[k]           = monstro_tipo[k+1];
+                    monstro_conjurado_boss[k] = monstro_conjurado_boss[k+1];
                 }
                 total_monstros--;
                 break;
